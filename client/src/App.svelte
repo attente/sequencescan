@@ -1,30 +1,77 @@
-<script lang="ts">
-  export let name: string;
-</script>
+<div id="app">
+  <div id="query">
+    <input type="text" bind:value={query}>
+    <input type="button" value="reset" on:click={() => { query = undefined; value = undefined }}>
+  </div>
 
-<main>
-  <h1>Hello {name}!</h1>
-  <p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
-</main>
+  {#if value === undefined}
+    <div id="splash">
+      enter:
+      <ul>
+        <li>transaction data</li>
+        <li>encoded sequence signature</li>
+      </ul>
+    </div>
+  {:else}
+    <Value {value} />
+  {/if}
+</div>
 
 <style>
-  main {
-    text-align: center;
-    padding: 1em;
-    max-width: 240px;
-    margin: 0 auto;
+  div#app {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
   }
 
-  h1 {
-    color: #ff3e00;
-    text-transform: uppercase;
-    font-size: 4em;
-    font-weight: 100;
+  div#query {
+    display: flex;
+    flex-flow: row;
+    flex-grow: 0;
   }
 
-  @media (min-width: 640px) {
-    main {
-      max-width: none;
-    }
+  input[type=text] {
+    flex-grow: 1;
+    border-radius: 10px 0px 0px 10px;
+  }
+
+  input[type=button] {
+    flex-grow: 0;
+    border-radius: 0px 10px 10px 0px;
+  }
+
+  div#splash {
+    flex-grow: 1;
+  }
+
+  ul {
+    margin-left: 10px;
+    padding-left: 10px;
   }
 </style>
+
+<script lang="ts">
+  import { ethers } from 'ethers'
+  import Value from './Value.svelte'
+
+  let query: string | undefined
+  let value: string | undefined
+  let timeoutID: NodeJS.Timeout | undefined
+
+  $: {
+    if (timeoutID !== undefined) {
+      clearTimeout(timeoutID)
+    }
+
+    if (query === undefined || query === '') {
+      value = undefined
+    } else {
+      timeoutID = setTimeout(handleQuery, 1000)
+    }
+  }
+
+  function handleQuery() {
+    value = ethers.utils.isHexString(`0x${query}`) ? `0x${query}` : query
+    timeoutID = undefined
+  }
+</script>
