@@ -6,21 +6,21 @@
         {result.function}
         <ol start="0">
           {#each result.arguments as [key, value]}
-            <li>{key}:&nbsp;<svelte:self {value} /></li>
+            <li>{key}:&nbsp;<svelte:self {value} depth={depth + 1} /></li>
           {/each}
         </ol>
       </div>
     {:else if isSequenceTransaction(result) && typeof result[0] !== 'undefined'}
       <div class="transaction">
-        <svelte:self value={Object.fromEntries(Object.entries(result).filter(([key, _]) => ['delegateCall', 'revertOnError', 'gasLimit', 'target', 'value', 'data'].includes(key)))} />
+        <svelte:self value={Object.fromEntries(Object.entries(result).filter(([key, _]) => ['delegateCall', 'revertOnError', 'gasLimit', 'target', 'value', 'data'].includes(key)))} depth={depth + 1} />
       </div>
     {:else if sequence.config.isDecodedEOASigner(result) && sequence.config.isDecodedEOASplitSigner(result)}
-      <svelte:self value={Object.fromEntries(Object.entries(result).filter(([key, _]) => !['r', 's', 'v', 't'].includes(key)))} />
+      <svelte:self value={Object.fromEntries(Object.entries(result).filter(([key, _]) => !['r', 's', 'v', 't'].includes(key)))} depth={depth + 1} />
     {:else if isSequenceSignature(result)}
       <div class="signature">
         <ul>
           {#each Object.entries(result) as [key, value]}
-            <li>{key}:&nbsp;<svelte:self {value} /></li>
+            <li>{key}:&nbsp;<svelte:self {value} depth={depth + 1} /></li>
           {/each}
         </ul>
       </div>
@@ -30,20 +30,20 @@
       {#if isEntryArray(result)}
         <ul>
           {#each result as [key, value]}
-            <li>{key}:&nbsp;<svelte:self {value} /></li>
+            <li>{key}:&nbsp;<svelte:self {value} depth={depth + 1} /></li>
           {/each}
         </ul>
       {:else}
         <ol start="0">
           {#each result as element}
-            <li><svelte:self value={element} /></li>
+            <li><svelte:self value={element} depth={depth + 1} /></li>
           {/each}
         </ol>
       {/if}
     {:else}
       <ul>
         {#each Object.entries(result) as [key, value]}
-          <li>{key}:&nbsp;<svelte:self {value} /></li>
+          <li>{key}:&nbsp;<svelte:self {value} depth={depth + 1} /></li>
         {/each}
       </ul>
     {/if}
@@ -219,6 +219,7 @@
 
 <script lang="ts">
   export let value: any
+  export let depth: number = 0
 
   $: result = (async () => {
     if (ethers.BigNumber.isBigNumber(value)) {
