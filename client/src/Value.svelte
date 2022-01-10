@@ -95,13 +95,12 @@
   }
 </style>
 
-<script lang="ts">
+<script context="module" lang="ts">
   import * as ethers from 'ethers'
   import { sequence } from '0xsequence'
 
-  export let value: any
-
   const extraSignatures: Map<string, string[]> = new Map()
+  const remoteSignatures: Map<string, Promise<string[]>> = new Map()
 
   for (const contract of Object.values(sequence.abi.walletContracts)) {
     const abi = new ethers.utils.Interface(contract.abi)
@@ -129,16 +128,28 @@
 
     const signatures = extraSignatures.has(selector) ? [...extraSignatures.get(selector)] : []
 
-    const responses = await Promise.allSettled([
-      fetch(`https://raw.githubusercontent.com/ethereum-lists/4bytes/master/with_parameter_names/${selector}`),
-      fetch(`https://raw.githubusercontent.com/ethereum-lists/4bytes/master/signatures/${selector}`)
-    ])
+    if (!remoteSignatures.has(selector)) {
+      remoteSignatures.set(selector, (async () => {
+        const fetchSignatures = async (url: string): Promise<string[]> => {
+          try {
+            const response = await fetch(url)
+            if (response.ok) {
+              return (await response.text()).split(';')
+            }
+          } catch {
+          }
 
-    for (const response of responses) {
-      if (response.status === 'fulfilled' && response.value.ok) {
-        signatures.push(...(await response.value.text()).split(';'))
-      }
+          return []
+        }
+
+        return (await Promise.all([
+          `https://raw.githubusercontent.com/ethereum-lists/4bytes/master/with_parameter_names/${selector}`,
+          `https://raw.githubusercontent.com/ethereum-lists/4bytes/master/signatures/${selector}`
+        ].map(fetchSignatures))).flat()
+      })())
     }
+
+    signatures.push(...(await remoteSignatures.get(selector)))
 
     return signatures
   }
@@ -204,6 +215,10 @@
 
     return false
   }
+</script>
+
+<script lang="ts">
+  export let value: any
 
   $: result = (async () => {
     if (ethers.BigNumber.isBigNumber(value)) {
