@@ -1,7 +1,12 @@
 {#await result}
 {:then result}
   {#if typeof result === 'object'}
-    {#if isFunctionCall(result)}
+    {#if isTransactionHash(result)}
+      <div class="transaction">
+        <a href={result.transactionURL} target="_blank">{result.transactionURL}</a>
+        <svelte:self value={result.value} depth={depth + 1} />
+      </div>
+    {:else if isFunctionCall(result)}
       <div class="function">
         {result.function}
         <ol start="0">
@@ -154,6 +159,16 @@
     return signatures
   }
 
+  function isTransactionHash(value: any): value is { transactionURL: string, value: string } {
+    if (typeof value === 'object') {
+      if (typeof value.transactionURL === 'string' && typeof value.value === 'string') {
+        return true
+      }
+    }
+
+    return false
+  }
+
   function isFunctionCall(value: any): value is { function: string, arguments: Array<[string, any]> } {
     if (typeof value === 'object') {
       if (typeof value.function === 'string') {
@@ -221,7 +236,73 @@
   export let value: any
   export let depth: number = 0
 
+  const networks = [
+    {
+      name: 'polygon',
+      chainId: 137,
+      nodeURL: 'https://dev-nodes.sequence.app/polygon',
+      addressURL: (address: string) => `https://polygonscan.com/address/${address}`,
+      transactionURL: (transactionHash: string) => `https://polygonscan.com/tx/${transactionHash}`
+    },
+    {
+      name: 'mainnet',
+      chainId: 1,
+      nodeURL: 'https://dev-nodes.sequence.app/mainnet',
+      addressURL: (address: string) => `https://etherscan.io/address/${address}`,
+      transactionURL: (transactionHash: string) => `https://etherscan.io/tx/${transactionHash}`
+    },
+    {
+      name: 'mumbai',
+      chainId: 80001,
+      nodeURL: 'https://dev-nodes.sequence.app/mumbai',
+      addressURL: (address: string) => `https://mumbai.polygonscan.com/address/${address}`,
+      transactionURL: (transactionHash: string) => `https://mumbai.polygonscan.com/tx/${transactionHash}`
+    },
+    {
+      name: 'rinkeby',
+      chainId: 4,
+      nodeURL: 'https://dev-nodes.sequence.app/rinkeby',
+      addressURL: (address: string) => `https://rinkeby.etherscan.io/address/${address}`,
+      transactionURL: (transactionHash: string) => `https://rinkeby.etherscan.io/tx/${transactionHash}`
+    }
+  ]
+
   $: result = (async () => {
+    if (depth === 0) {
+      if (ethers.utils.isBytesLike(value)) {
+        const data = ethers.utils.arrayify(value)
+        if (data.length === 32) {
+          const transactionHash = ethers.utils.hexlify(data)
+
+          for (const { nodeURL, transactionURL } of networks) {
+            try {
+              const response = await fetch(nodeURL, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'eth_getTransactionByHash',
+                  params: [transactionHash],
+                  id: 1
+                })
+              })
+
+              const body = await response.json()
+              if (typeof body.result === 'object') {
+                return {
+                  transactionURL: transactionURL(transactionHash),
+                  value: body.result.input
+                }
+              }
+            } catch {
+            }
+          }
+        }
+      }
+    }
+
     if (ethers.BigNumber.isBigNumber(value)) {
       return value.toString()
     } else if (ethers.utils.isBytesLike(value)) {
