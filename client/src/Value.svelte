@@ -271,7 +271,12 @@
     if (depth === 0) {
       if (ethers.utils.isBytesLike(value)) {
         const data = ethers.utils.arrayify(value)
-        if (data.length === 32) {
+        if (data.length === 4) {
+          const signatures = await getSignatures(data)
+          if (signatures.length !== 0) {
+            return signatures
+          }
+        } else if (data.length === 32) {
           const transactionHash = ethers.utils.hexlify(data)
 
           for (const { nodeURL, transactionURL } of networks) {

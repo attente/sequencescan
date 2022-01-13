@@ -11,6 +11,7 @@
         <li>transaction hash (<a on:click={() => { query = 'a2c9e9d366f4540ee0af3d8080576f9eab2da6ca9a45cbe88ef1a578f735181a' }}>example</a>)</li>
         <li>transaction data</li>
         <li>encoded sequence signature</li>
+        <li>function selector (<a on:click={() => { query = '2eb2c2d6' }}>example</a>)</li>
       </ul>
     </div>
   {:else}
