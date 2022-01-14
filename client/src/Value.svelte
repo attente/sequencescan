@@ -29,6 +29,11 @@
           {/each}
         </ul>
       </div>
+    {:else if isFunctionSignature(result)}
+      {result.signature}
+      <ul>
+        <li>selector: {result.selector}</li>
+      </ul>
     {:else if result instanceof Uint8Array}
       {ethers.utils.hexlify(result)}
     {:else if result instanceof Array}
@@ -219,6 +224,16 @@
     return false
   }
 
+  function isFunctionSignature(value: any): value is { signature: string, selector: string } {
+    if (typeof value === 'object') {
+      if (typeof value.signature === 'string' && typeof value.selector === 'string') {
+        return true
+      }
+    }
+
+    return false
+  }
+
   function isEntryArray(value: any): value is Array<[string, any]> {
     if (typeof value === 'object') {
       if (value instanceof Array) {
@@ -304,6 +319,15 @@
             } catch {
             }
           }
+        }
+      } else if (typeof value === 'string') {
+        try {
+          const fragment = new ethers.utils.Interface([value.startsWith('function ') ? value : `function ${value}`]).fragments[0]
+          const signature = fragment.format(ethers.utils.FormatTypes.sighash)
+          const selector = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(signature)).substring(0, 10)
+
+          return { signature, selector }
+        } catch {
         }
       }
     }
