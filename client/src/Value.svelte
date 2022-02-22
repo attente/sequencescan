@@ -1,7 +1,14 @@
 {#await result}
 {:then result}
   {#if typeof result === 'object'}
-    {#if isTransactionHash(result)}
+    {#if isSequenceWallet(result)}
+      {#each result as { addressURL, config }}
+        <div class="wallet">
+          <a href={addressURL} target="_blank">{addressURL}</a>
+          <svelte:self value={config} depth={depth + 1} />
+        </div>
+      {/each}
+    {:else if isTransactionHash(result)}
       <div class="transaction">
         <a href={result.transactionURL} target="_blank">{result.transactionURL}</a>
         <svelte:self value={result.value} depth={depth + 1} />
@@ -72,6 +79,16 @@
     border: 1px solid #0000ff;
     border-radius: 10px;
     background-color: #bbbbff;
+    margin: 10px 0px;
+  }
+
+  div.wallet {
+    display: inline-block;
+    vertical-align: top;
+    padding: 10px;
+    border: 1px solid #00ff00;
+    border-radius: 10px;
+    background-color: #bbffbb;
     margin: 10px 0px;
   }
 
@@ -188,6 +205,28 @@
     return false
   }
 
+  function isSequenceWallet(value: any): value is Array<{ addressURL: string, config: sequence.config.WalletConfig }> {
+    if (typeof value === 'object') {
+      if (value instanceof Array) {
+        if (value.every(value => {
+          if (typeof value === 'object') {
+            if (typeof value.addressURL === 'string') {
+              if (typeof value.config === 'object') {
+                return true
+              }
+            }
+          }
+
+          return false
+        })) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
   function isSequenceTransaction(value: any): value is sequence.transactions.Transaction {
     if (typeof value === 'object') {
       if (typeof value.delegateCall === 'boolean') {
@@ -290,6 +329,26 @@
           const signatures = await getSignatures(data)
           if (signatures.length !== 0) {
             return signatures
+          }
+        } else if (data.length === 20) {
+          const address = ethers.utils.getAddress(ethers.utils.hexlify(value))
+          const context = sequence.network.sequenceContext
+          const configs = []
+
+          for (const network of networks) {
+            const provider = new ethers.providers.JsonRpcProvider(network.nodeURL, network.chainId)
+            const code = await provider.getCode(address)
+            if (code === '0x363d3d373d3d3d363d30545af43d82803e903d91601857fd5bf3') {
+              const finder = new sequence.config.SequenceUtilsFinder(provider)
+              const { config } = await finder.findCurrentConfig({ address, provider, context })
+              if (config !== undefined) {
+                configs.push({ addressURL: network.addressURL(address), config })
+              }
+            }
+          }
+
+          if (configs.length !== 0) {
+            return configs
           }
         } else if (data.length === 32) {
           const transactionHash = ethers.utils.hexlify(data)

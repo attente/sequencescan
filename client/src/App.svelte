@@ -8,6 +8,7 @@
     <div id="splash">
       enter:
       <ul>
+        <li>deployed sequence wallet address (<a on:click={() => { query = '0x468E8e29F6cfb0F6b7ff10ec6A1AB516ec849c04' }}>example</a>)</li>
         <li>transaction hash (<a on:click={() => { query = 'a2c9e9d366f4540ee0af3d8080576f9eab2da6ca9a45cbe88ef1a578f735181a' }}>example</a>)</li>
         <li>transaction data</li>
         <li>encoded sequence signature</li>
