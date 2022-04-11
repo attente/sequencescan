@@ -378,6 +378,11 @@
             } catch {
             }
           }
+        } else {
+          try {
+            return ethers.utils.defaultAbiCoder.decode([sequence.transactions.MetaTransactionsType], data)
+          } catch {
+          }
         }
       } else if (typeof value === 'string') {
         try {
