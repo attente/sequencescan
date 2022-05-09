@@ -15,7 +15,7 @@
       </div>
     {:else if isFunctionCall(result)}
       <div class="function">
-        {result.function}
+        {result.function} [selector={result.selector}]
         <ol start="0">
           {#each result.arguments as [key, value]}
             <li>{key}:&nbsp;<svelte:self {value} depth={depth + 1} /></li>
@@ -205,7 +205,7 @@
     return false
   }
 
-  function isFunctionCall(value: any): value is { function: string, arguments: Array<[string, any]> } {
+  function isFunctionCall(value: any): value is { function: string, arguments: Array<[string, any]>, selector: string } {
     if (typeof value === 'object') {
       if (typeof value.function === 'string') {
         if (typeof value.arguments === 'object') {
@@ -436,7 +436,8 @@
 
             return {
               function: signature,
-              arguments: dataArguments.map((argument, i) => [signatureFunction.inputs[i].format(ethers.utils.FormatTypes.full), argument])
+              arguments: dataArguments.map((argument, i) => [signatureFunction.inputs[i].format(ethers.utils.FormatTypes.full), argument]),
+              selector: ethers.utils.hexlify(selector).substring(2)
             }
           } catch {
           }
