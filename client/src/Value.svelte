@@ -157,9 +157,9 @@
 
     if (!remoteSignatures.has(selector)) {
       remoteSignatures.set(selector, (async () => {
-        const fetchSignatures = async (url: string): Promise<string[]> => {
+        const fetchGitHubSignatures = async (selector: string): Promise<string[]> => {
           try {
-            const response = await fetch(url)
+            const response = await fetch(`https://raw.githubusercontent.com/ethereum-lists/4bytes/master/with_parameter_names/${selector}`)
             if (response.ok) {
               return (await response.text()).split(';')
             }
@@ -169,10 +169,24 @@
           return []
         }
 
-        return (await Promise.all([
-          `https://raw.githubusercontent.com/ethereum-lists/4bytes/master/with_parameter_names/${selector}`,
-          `https://raw.githubusercontent.com/ethereum-lists/4bytes/master/signatures/${selector}`
-        ].map(fetchSignatures))).flat()
+        const gitHubSignatures = await fetchGitHubSignatures(selector)
+        if (gitHubSignatures.length !== 0) {
+          return gitHubSignatures
+        }
+
+        const fetch4ByteDirectorySignatures = async (selector: string): Promise<string[]> => {
+          try {
+            const response = await fetch(`https://www.4byte.directory/api/v1/signatures/?hex_signature=${selector}`)
+            if (response.ok) {
+              return (await response.json()).results.map(({ text_signature }) => text_signature)
+            }
+          } catch {
+          }
+
+          return []
+        }
+
+        return fetch4ByteDirectorySignatures(selector)
       })())
     }
 
